@@ -2,8 +2,10 @@ package android.development.bangkokguy.sqltest;
 
 import android.app.Service;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
+import android.hardware.SensorManager;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -15,14 +17,16 @@ public class CollectBaroData extends Service {
 
     SQLiteDatabase DB;
     long result;
+    SensorManager mSensorManager;
 
     public CollectBaroData() {
         DB = openOrCreateDatabase(TABLE, MODE_PRIVATE, null);
         DB.execSQL("CREATE TABLE IF NOT EXISTS BaroData(Date VARCHAR,Value VARCHAR);");
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
     }
 
     int insertRow () {
-        DB.execSQL("INSERT INTO BaroData VALUES('admin','admin');");
+        //DB.execSQL("INSERT INTO BaroData VALUES('admin','admin');");
         ContentValues insertValues = new ContentValues();
         insertValues.put("Date", "date");
         insertValues.put("Value", "500");
