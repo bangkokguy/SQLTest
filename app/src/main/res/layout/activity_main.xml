@@ -6,12 +6,43 @@
     <Button
         android:id="@+id/mainResetDB"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:text="Drop"/>
     <Button
-        android:layout_below="@+id/mainResetDB"
         android:id="@+id/mainRefreshView"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/mainResetDB"
+        android:layout_toEndOf="@+id/mainResetDB"
+        android:text="Refresh"/>
+    <Button
+        android:id="@+id/dec_step"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_width="32dp"
+        android:textSize="20sp"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@+id/reset_step"
+        android:layout_toStartOf="@+id/reset_step"
+        android:text="-"/>
+    <Button
+        android:id="@+id/reset_step"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toLeftOf="@+id/inc_step"
+        android:layout_toStartOf="@+id/inc_step"
+        android:text="10"/>
+    <Button
+        android:id="@+id/inc_step"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
+        android:layout_width="32dp"
+        android:textSize="20sp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:text="+"/>
+
     <com.jjoe64.graphview.GraphView
         android:layout_below="@+id/mainRefreshView"
         android:layout_width="match_parent"
@@ -26,5 +57,6 @@
         android:textAppearance="?android:attr/textAppearanceLarge" >
 
     </ListView>
+
 
 </RelativeLayout>

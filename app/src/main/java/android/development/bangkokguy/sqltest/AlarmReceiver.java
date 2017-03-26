@@ -12,7 +12,7 @@ public class AlarmReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d(TAG, "onReceive");
+        if(DEBUG)Log.d(TAG, "onReceive");
         context.startService(new Intent(context, CollectBaroData.class));
     }
 

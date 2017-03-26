@@ -41,24 +41,25 @@ public class CollectBaroData extends Service {
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         baro = mSensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
         if(baro == null){
-            Log.d(TAG,"Failure! No barometer.");
+            Log.e(TAG,"Failure! No barometer.");
         }
         else {
-            Log.d(TAG,"Success! There's a barometer.");
+            if(DEBUG)Log.d(TAG,"Success! There's a barometer.");
             mSensorManager.registerListener(sensorEventListener, baro, SensorManager.SENSOR_DELAY_NORMAL);
         }
 
         return START_STICKY;
     }
-
+    float s=0;
     SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
+            s = event.values[0]*100;
             Log.d(TAG, "Insert result="
                     +
                     insertRow(
                         Long.toString(event.timestamp),
-                        Long.toString((long)event.values[0])));
+                        Long.toString((long)s)));
             mSensorManager.unregisterListener(this);
         }
 
@@ -67,6 +68,11 @@ public class CollectBaroData extends Service {
 
         }
     };
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+    }
 
     @Override
     public IBinder onBind(Intent intent) {

@@ -26,11 +26,14 @@ import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.DataPointInterface;
 import com.jjoe64.graphview.series.LineGraphSeries;
+import com.jjoe64.graphview.series.OnDataPointTapListener;
+import com.jjoe64.graphview.series.Series;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,21 +43,24 @@ import static android.app.AlarmManager.INTERVAL_FIFTEEN_MINUTES;
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     static final boolean DEBUG = true;
-    static final String TAG = "CollectBaroData";
+    static final String TAG = "MainActivity";
     static final String TABLE = "baroData";
 
     SQLiteDatabase DB;
-    Button mainResetDB, mainRefreshView;
+    Button mainResetDB, mainRefreshView, inc_step, reset_step, dec_step;
     SimpleCursorAdapter dataAdapter;
     SensorManager mSensorManager;
     Sensor baro;
     ListView lvMain;
+    String where = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+
+        where = " where (_Id % 10) = 0";
 
         mainResetDB = (Button) findViewById(R.id.mainResetDB);
         mainResetDB.setOnClickListener(new View.OnClickListener() {
@@ -70,10 +76,38 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mainRefreshView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                dataAdapter.swapCursor(DB.rawQuery("SELECT  * FROM "+TABLE, null));
+                dataAdapter.swapCursor(DB.rawQuery("SELECT * FROM "+TABLE + where, null));
                 graphInit();
             }
         });
+
+        dec_step = (Button) findViewById(R.id.dec_step);
+        dec_step.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int i = Integer.parseInt(reset_step.getText().toString());
+                if(--i<1)i=1;
+                reset_step.setText(Integer.toString(i));
+            }
+        });
+
+        reset_step = (Button) findViewById(R.id.reset_step);
+        reset_step.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                reset_step.setText("0");
+            }
+        });
+
+        inc_step = (Button) findViewById(R.id.inc_step);
+        inc_step.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int i = Integer.parseInt(reset_step.getText().toString());
+                reset_step.setText(Integer.toString(++i));
+            }
+        });
+
 
         // Find ListView to populate
         lvMain = (ListView) findViewById(R.id.lvMain);
@@ -94,44 +128,51 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         alarmMgr.setInexactRepeating(
                 AlarmManager.ELAPSED_REALTIME_WAKEUP,
                 0,
-                600, //INTERVAL_FIFTEEN_MINUTES,
+                300, //INTERVAL_FIFTEEN_MINUTES,
                 pendingIntent);
     }
 
-    void graphInit() {
-        GraphView graph = (GraphView) findViewById(R.id.graph);
+    GraphView graph;
+    LineGraphSeries<DataPoint> series;
 
-        Cursor c = DB.rawQuery("SELECT  * FROM "+TABLE, null);
-        c.moveToFirst();
+    DataPoint [] data() {
+        DataPoint [] d = null;
+        Cursor c = DB.rawQuery("SELECT  * FROM "+TABLE + where, null);
 
-        DataPoint [] data = new DataPoint[c.getCount()-1];
-        //List<DataPoint> list = new ArrayList<>();
+        if(c.moveToFirst()) {
+            d = new DataPoint[c.getCount()];
 
-        int i = 0;
-        while (c.moveToNext()) {
-            int id = c.getInt(0);
-            Log.d(TAG, "_Id = "+Integer.toString(id));
+            int i = 0;
+            do {
+                int id = c.getInt(0);
+                String title = c.getString(1);
+                String value = c.getString(2);
+                d[i] = new DataPoint(i++, Integer.parseInt(value));
 
-            String title = c.getString(1);
-            Log.d(TAG, "Timestamp = "+title);
+                if(DEBUG)Log.d(TAG, "_Id="+Integer.toString(id)+" Timestamp="+title);
 
-            String value = c.getString(2);
-
-            data[i] = new DataPoint(i++, Integer.parseInt(value));
-            //list.add(new DataPoint(i++, Integer.parseInt(value)));
+            } while (c.moveToNext());
         }
 
-        /*LineGraphSeries<DataPoint> series = new LineGraphSeries<>(new DataPoint[] {
-                new DataPoint(0, 1),
-                new DataPoint(1, 5),
-                new DataPoint(2, 3)
-        });*/
-        //LineGraphSeries<DataPoint> series = new LineGraphSeries<>((DataPoint[]) list.toArray());
-        Log.d(TAG, "Data length="+Integer.toString(data.length));
-        LineGraphSeries<DataPoint> series = new LineGraphSeries<>(data);
-        graph.addSeries(series);
-
         c.close();
+        return d;
+    }
+
+    void graphInit() {
+        DataPoint [] d = data();
+        graph = (GraphView) findViewById(R.id.graph);
+
+        if(d!=null){
+            Log.d(TAG, "Data length="+Integer.toString(d.length));
+            series = new LineGraphSeries<>(d);
+            graph.addSeries(series);
+            graph.setOnClickListener(new GraphView.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    series.resetData(data());
+                }
+            });
+        }
     }
 
     void sensorInit(){
@@ -151,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
     @Override
     public void onSensorChanged(SensorEvent event) {
-        mainResetDB.setText(Long.toString(event.timestamp));
+        //mainResetDB.setText(Float.toString(event.values[0]*100));
     }
 
     @Override
@@ -162,6 +203,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
+        DB = openOrCreateDatabase(TABLE, MODE_PRIVATE, null);
         mSensorManager.registerListener(this, baro, SensorManager.SENSOR_DELAY_UI);
     }
 
@@ -169,11 +211,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(this);
+        DB.close();
     }
 
     void init () {
         DB = openOrCreateDatabase(TABLE, MODE_PRIVATE, null);
         Log.d(TAG, DB.getPath());
+        //DB.execSQL("DROP TABLE " + TABLE);
         DB.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE +
                 "(_id INTEGER PRIMARY KEY AUTOINCREMENT,Date VARCHAR,Value VARCHAR);");
 
@@ -195,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         dataAdapter = new SimpleCursorAdapter(
                 this,
                 R.layout.template,
-                DB.rawQuery("SELECT  * FROM "+TABLE, null), //cursor,
+                DB.rawQuery("SELECT  * FROM "+TABLE + where, null), //cursor,
                 columns,
                 to,
                 0);
