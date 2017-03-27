@@ -12,6 +12,16 @@ import android.hardware.SensorManager;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.sql.Timestamp;
+
+/**
+ * TODO: Reorganize the baro data file->
+ * TODO:    delete records older than specified date->
+ * TODO:    after deletion copy into new table (eliminate deleted records)
+ * TODO: Store the time elapsed between to samples->
+ * TODO:    new field in database
+ */
+
 public class CollectBaroData extends Service {
 
     static final boolean DEBUG = true;
@@ -51,15 +61,19 @@ public class CollectBaroData extends Service {
         return START_STICKY;
     }
     float s=0;
+    Timestamp ts = null;
     SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
             s = event.values[0]*100;
+            ts = new Timestamp(System.currentTimeMillis()); // + (event.timestamp - System.nanoTime()) / 1000000L);
+
             Log.d(TAG, "Insert result="
                     +
                     insertRow(
-                        Long.toString(event.timestamp),
+                        ts.toString(),
                         Long.toString((long)s)));
+
             mSensorManager.unregisterListener(this);
         }
 

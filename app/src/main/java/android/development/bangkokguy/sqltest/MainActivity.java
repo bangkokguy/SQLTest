@@ -40,6 +40,15 @@ import java.util.List;
 
 import static android.app.AlarmManager.INTERVAL_FIFTEEN_MINUTES;
 
+/**
+ * TODO: Select last n days, weeks, months
+ * TODO:    Date picker?
+ * TODO: Show data between time intervals
+ * TODO:    Date picker?
+ * TODO: Create settings activity->
+ * TODO:    default time interval
+ * TODO:    delete records older than
+ */
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     static final boolean DEBUG = true;
@@ -53,6 +62,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     Sensor baro;
     ListView lvMain;
     String where = "";
+    GraphView graph;
+    LineGraphSeries<DataPoint> series;
+    String zoom = "10";
+
+    String where() {
+        //return " where (_Id % " + zoom + ") = 0";
+        return " where (Date > \'2017-03-27\') and (Date < \'2017-03-28\')";
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         setContentView(R.layout.activity_main);
 
-        where = " where (_Id % 10) = 0";
+        where = where();
 
         mainResetDB = (Button) findViewById(R.id.mainResetDB);
         mainResetDB.setOnClickListener(new View.OnClickListener() {
@@ -76,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mainRefreshView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                dataAdapter.swapCursor(DB.rawQuery("SELECT * FROM "+TABLE + where, null));
+                dataAdapter.swapCursor(DB.rawQuery("SELECT * FROM " + TABLE + where, null));
                 graphInit();
             }
         });
@@ -86,12 +103,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             @Override
             public void onClick(View v) {
                 int i = Integer.parseInt(reset_step.getText().toString());
-                if(--i<1)i=1;
+                if (--i < 1) i = 1;
                 reset_step.setText(Integer.toString(i));
             }
         });
 
         reset_step = (Button) findViewById(R.id.reset_step);
+        reset_step.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                zoom = reset_step.getText().toString();
+                where = where();
+                if(DEBUG)Log.d(TAG, "reset_step:onLayoutChange:"+where);
+            }
+        });
         reset_step.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -115,7 +140,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         init();
         sensorInit();
         graphInit();
+        alarmInit();
+    }
 
+    void alarmInit() {
         AlarmManager alarmMgr = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
         PendingIntent pendingIntent =
                 PendingIntent.getBroadcast(
@@ -131,9 +159,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 300, //INTERVAL_FIFTEEN_MINUTES,
                 pendingIntent);
     }
-
-    GraphView graph;
-    LineGraphSeries<DataPoint> series;
 
     DataPoint [] data() {
         DataPoint [] d = null;
@@ -155,6 +180,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         c.close();
+        if(d==null) {
+            d = new DataPoint[1];
+            d[0] = new DataPoint(1,1);
+        }
+
         return d;
     }
 
@@ -172,6 +202,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     series.resetData(data());
                 }
             });
+            graph.getViewport().setScrollable(true); // enables horizontal scrolling
+            graph.getViewport().setScrollableY(true); // enables vertical scrolling
+            //graph.getViewport().setScalable(true); // enables horizontal zooming and scrolling
+            //graph.getViewport().setScalableY(true); // enables vertical zooming and scrolling
+
         }
     }
 
