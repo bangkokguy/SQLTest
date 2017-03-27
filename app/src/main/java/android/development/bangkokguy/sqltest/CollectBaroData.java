@@ -18,8 +18,8 @@ import java.sql.Timestamp;
  * TODO: Reorganize the baro data file->
  * TODO:    delete records older than specified date->
  * TODO:    after deletion copy into new table (eliminate deleted records)
- * TODO: Store the time elapsed between to samples->
- * TODO:    new field in database
+ * DONE: Store the time elapsed between to samples->
+ * DONE:    new field in database
  */
 
 public class CollectBaroData extends Service {
@@ -33,11 +33,19 @@ public class CollectBaroData extends Service {
     Sensor baro;
     Context context;
 
-    long insertRow (String timeStamp, String baroValue) {
+    void createTable() {
+        DB.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE +
+                "(_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "Date VARCHAR," +
+                "Value VARCHAR," +
+                "Elapsed VARCHAR);");
+    }
+    long insertRow (String timeStamp, String baroValue, String elapsedTime) {
 
         ContentValues insertValues = new ContentValues();
         insertValues.put("Date", timeStamp);
         insertValues.put("Value", baroValue);
+        insertValues.put("Elapsed", elapsedTime);
         return DB.insert(TABLE, null, insertValues);
     }
 
@@ -46,7 +54,7 @@ public class CollectBaroData extends Service {
         context = getApplicationContext();
 
         DB = openOrCreateDatabase(TABLE, MODE_PRIVATE, null);
-        DB.execSQL("CREATE TABLE IF NOT EXISTS "+TABLE+"(Date VARCHAR,Value VARCHAR);");
+        createTable();
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         baro = mSensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
@@ -60,19 +68,30 @@ public class CollectBaroData extends Service {
 
         return START_STICKY;
     }
+
     float s=0;
     Timestamp ts = null;
+    long oldTime = System.currentTimeMillis();
+    long newTime = 0;
+    long elapsed = 0;
+
     SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
             s = event.values[0]*100;
-            ts = new Timestamp(System.currentTimeMillis()); // + (event.timestamp - System.nanoTime()) / 1000000L);
+            newTime = System.currentTimeMillis();
+            ts = new Timestamp(newTime);
+            elapsed = (newTime - oldTime) / 1000;
+            oldTime = newTime;
 
             Log.d(TAG, "Insert result="
                     +
                     insertRow(
                         ts.toString(),
-                        Long.toString((long)s)));
+                        Long.toString((long)s),
+                        Long.toString(elapsed)
+                    )
+            );
 
             mSensorManager.unregisterListener(this);
         }

@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Study cursors"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
+        android:textAppearance="?android:attr/textAppearanceSmall" />
     <TextView
         android:id="@+id/tvValue"
         android:layout_width="wrap_content"
@@ -22,5 +22,11 @@
         android:layout_marginLeft="10dp"
         android:text="3"
         android:textAppearance="?android:attr/textAppearanceLarge" />
-
+    <TextView
+        android:id="@+id/tvElapsed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="10dp"
+        android:text="3"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 </LinearLayout>
