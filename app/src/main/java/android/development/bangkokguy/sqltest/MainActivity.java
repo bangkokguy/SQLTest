@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -19,6 +20,7 @@ import android.widget.Button;
 import android.widget.ListView;
 
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.helper.StaticLabelsFormatter;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
@@ -198,6 +200,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(d!=null){
             Log.d(TAG, "Data length="+Integer.toString(d.length));
             series = new LineGraphSeries<>(d);
+
+            // styling series
+            series.setTitle("Baro data");
+            series.setColor(Color.GREEN);
+            series.setDrawDataPoints(true);
+            series.setDataPointsRadius(10);
+            series.setThickness(8);
+
+            graph.getViewport().setMinY(100500);
+            graph.getViewport().setMaxY(101000);
+            graph.getViewport().setYAxisBoundsManual(true);
+
+
+            //graph.getSecondScale().setMinY(940);
+            //graph.getSecondScale().setMaxY(1024);
             graph.addSeries(series);
             graph.setOnClickListener(new GraphView.OnClickListener() {
                 @Override
@@ -206,13 +223,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     d = data();
                     graph.removeAllSeries();
                     series = new LineGraphSeries<>(d);
+                    series.setTitle("Random Curve 1");
+                    series.setColor(Color.GREEN);
+                    series.setDrawDataPoints(true);
+                    series.setDataPointsRadius(10);
+                    series.setThickness(8);
                     graph.addSeries(series);
                 }
             });
             graph.getViewport().setScrollable(true); // enables horizontal scrolling
-            //graph.getViewport().setScrollableY(true); // enables vertical scrolling
+            graph.getViewport().setScrollableY(false); // enables vertical scrolling
             graph.getViewport().setScalable(true); // enables horizontal zooming and scrolling
-            //graph.getViewport().setScalableY(true); // enables vertical zooming and scrolling
+            graph.getViewport().setScalableY(false); // enables vertical zooming and scrolling
+            StaticLabelsFormatter staticLabelsFormatter = new StaticLabelsFormatter(graph);
+            staticLabelsFormatter.setHorizontalLabels(new String[] {"old", "middle", "new"});
+            //staticLabelsFormatter.setVerticalLabels(new String[] {"low", "middle", "high"});
+            graph.getGridLabelRenderer().setLabelFormatter(staticLabelsFormatter);
 
         }
     }
