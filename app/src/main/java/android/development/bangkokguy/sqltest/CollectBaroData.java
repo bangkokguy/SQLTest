@@ -87,7 +87,8 @@ public class CollectBaroData extends Service {
             Log.d(TAG, "Insert result="
                     +
                     insertRow(
-                        ts.toString(),
+                        //ts.toString(),
+                        Long.toString(newTime),
                         Long.toString((long)s),
                         Long.toString(elapsed)
                     )

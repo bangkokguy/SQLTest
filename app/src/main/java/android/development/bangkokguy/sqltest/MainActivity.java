@@ -39,21 +39,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     static final String TAG = "MainActivity";
     static final String TABLE = "baroData";
 
+    static final String DEFAULT_ZOOM = "1";
+
     SQLiteDatabase DB;
     Button mainResetDB, mainRefreshView, inc_step, reset_step, dec_step;
     SimpleCursorAdapter dataAdapter;
     SensorManager mSensorManager;
     Sensor baro;
     ListView lvMain;
-    String where = "";
     GraphView graph;
     LineGraphSeries<DataPoint> series;
-    String zoom = "10";
+    String zoom = DEFAULT_ZOOM;
 
     String where() {
         //return " where (_Id % " + zoom + ") = 0";
-        Timestamp ts = new Timestamp(System.currentTimeMillis()-24*100*3600);
-        return " where (Date > \'" + ts.toString() + "\')";
+        long ts = (System.currentTimeMillis()-24*1000*Integer.parseInt(zoom)*3600);
+        return " where (Date > \'" + Long.toString(ts) + "\')";
         //return " where (Date > \'2017-03-27\') and (Date < \'2017-03-28\')";
     }
 
@@ -78,8 +79,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         setContentView(R.layout.activity_main);
 
-        where = where();
-
         mainResetDB = (Button) findViewById(R.id.mainResetDB);
         mainResetDB.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mainRefreshView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                dataAdapter.swapCursor(DB.rawQuery("SELECT * FROM " + TABLE + where, null));
+                dataAdapter.swapCursor(DB.rawQuery("SELECT * FROM " + TABLE + where(), null));
                 graphInit();
             }
         });
@@ -108,18 +107,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
 
         reset_step = (Button) findViewById(R.id.reset_step);
+        reset_step.setText(zoom);
         reset_step.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override
             public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
                 zoom = reset_step.getText().toString();
-                where = where();
-                if(DEBUG)Log.d(TAG, "reset_step:onLayoutChange:"+where);
+                if(DEBUG)Log.d(TAG, "reset_step:onLayoutChange:"+where());
             }
         });
         reset_step.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                reset_step.setText("0");
+                reset_step.setText(DEFAULT_ZOOM);
             }
         });
 
@@ -161,7 +160,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     DataPoint [] data() {
         DataPoint [] d = null;
-        Cursor c = DB.rawQuery("SELECT  * FROM "+TABLE + where, null);
+
+        Cursor c = DB.rawQuery("SELECT  * FROM "+TABLE + where(), null);
+
+        Log.d(TAG, "data(): where->"+where()+" count()->"+Integer.toString(c.getCount()));
 
         if(c.moveToFirst()) {
             d = new DataPoint[c.getCount()];
@@ -171,7 +173,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 int id = c.getInt(0);
                 String title = c.getString(1);
                 String value = c.getString(2);
-                d[i] = new DataPoint(i++, Integer.parseInt(value));
+                d[i++] = new DataPoint(Long.parseLong(title), Long.parseLong(value));
 
                 if(DEBUG)Log.d(TAG, "_Id="+Integer.toString(id)+" Timestamp="+title);
 
@@ -187,9 +189,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return d;
     }
 
+    DataPoint [] d;
     void graphInit() {
-        DataPoint [] d = data();
+        d = data();
         graph = (GraphView) findViewById(R.id.graph);
+        graph.removeAllSeries();
 
         if(d!=null){
             Log.d(TAG, "Data length="+Integer.toString(d.length));
@@ -198,12 +202,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             graph.setOnClickListener(new GraphView.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    series.resetData(data());
+                    Log.d(TAG,"onClick.graph");
+                    d = data();
+                    graph.removeAllSeries();
+                    series = new LineGraphSeries<>(d);
+                    graph.addSeries(series);
                 }
             });
-            //graph.getViewport().setScrollable(true); // enables horizontal scrolling
+            graph.getViewport().setScrollable(true); // enables horizontal scrolling
             //graph.getViewport().setScrollableY(true); // enables vertical scrolling
-            //graph.getViewport().setScalable(true); // enables horizontal zooming and scrolling
+            graph.getViewport().setScalable(true); // enables horizontal zooming and scrolling
             //graph.getViewport().setScalableY(true); // enables vertical zooming and scrolling
 
         }
@@ -275,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         dataAdapter = new SimpleCursorAdapter(
                 this,
                 R.layout.template,
-                DB.rawQuery("SELECT  * FROM "+TABLE + where, null), //cursor,
+                DB.rawQuery("SELECT  * FROM "+TABLE + where(), null), //cursor,
                 columns,
                 to,
                 0);
