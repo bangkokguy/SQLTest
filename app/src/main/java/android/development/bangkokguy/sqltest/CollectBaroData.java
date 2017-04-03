@@ -1,5 +1,7 @@
 package android.development.bangkokguy.sqltest;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
@@ -9,7 +11,10 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.sql.Timestamp;
@@ -49,8 +54,25 @@ public class CollectBaroData extends Service {
         return DB.insert(TABLE, null, insertValues);
     }
 
+    private PowerManager.WakeLock wl;
+    AlarmManager alarmMgr;
+    PendingIntent pendingIntent;
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DoNjfdhotDimScreen");//End of onCreate
+        wl.acquire();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmMgr = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+            pendingIntent =
+                    PendingIntent.getBroadcast(
+                            this,
+                            0,
+                            new Intent(this, AlarmReceiver.class),
+                            PendingIntent.FLAG_CANCEL_CURRENT);
+        }
+
         context = getApplicationContext();
 
         DB = openOrCreateDatabase(TABLE, MODE_PRIVATE, null);
@@ -78,6 +100,8 @@ public class CollectBaroData extends Service {
     SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
+            mSensorManager.unregisterListener(this);
+
             s = event.values[0]*100;
             newTime = System.currentTimeMillis();
             ts = new Timestamp(newTime);
@@ -94,7 +118,18 @@ public class CollectBaroData extends Service {
                     )
             );
 
-            mSensorManager.unregisterListener(this);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Log.d(TAG, "setAndAllowWhileIdle");
+                long triggerTime = SystemClock.elapsedRealtime() + 300000;
+                alarmMgr.setAndAllowWhileIdle(
+                        AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                        //0,
+                        triggerTime, //INTERVAL_FIFTEEN_MINUTES,
+                        pendingIntent);
+            }
+
+            wl.release();
         }
 
         @Override

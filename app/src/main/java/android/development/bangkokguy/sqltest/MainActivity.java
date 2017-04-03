@@ -11,6 +11,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
+import android.os.SystemClock;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -153,11 +155,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         PendingIntent.FLAG_CANCEL_CURRENT);
 
         // Use inexact repeating which is easier on battery (system can phase events and not wake at exact times)
-        alarmMgr.setInexactRepeating(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                0,
-                300, //INTERVAL_FIFTEEN_MINUTES,
-                pendingIntent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Log.d(TAG, "setAndAllowWhileIdle");
+            long triggerTime = SystemClock.elapsedRealtime() + 300000;
+            alarmMgr.setAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    //0,
+                    triggerTime, //INTERVAL_FIFTEEN_MINUTES,
+                    pendingIntent);
+        } else {
+            alarmMgr.setInexactRepeating(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    0,
+                    300, //INTERVAL_FIFTEEN_MINUTES,
+                    pendingIntent);
+        }
     }
 
     DataPoint [] data() {
@@ -208,8 +220,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             series.setDataPointsRadius(10);
             series.setThickness(8);
 
-            graph.getViewport().setMinY(100500);
-            graph.getViewport().setMaxY(101000);
+            graph.getViewport().setMinY(100000);
+            graph.getViewport().setMaxY(102000);
             graph.getViewport().setYAxisBoundsManual(true);
 
 
